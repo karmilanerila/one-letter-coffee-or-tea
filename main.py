@@ -1,5 +1,4 @@
 import os
-import tempfile
 
 LETTER = b"A"
 
@@ -9,21 +8,18 @@ def write_letter(letter, output_path):
     parent = os.path.dirname(output_path)
     if parent:
         os.makedirs(parent, exist_ok=True)
-    fd, tmp_path = tempfile.mkstemp(dir=parent or ".")
-    try:
-        with os.fdopen(fd, "wb") as f:
-            f.write(letter)
-        os.replace(tmp_path, output_path)
-    except BaseException:
-        try:
-            os.unlink(tmp_path)
-        except OSError:
-            pass
-        raise
+    with open(output_path, "wb") as f:
+        f.write(letter)
+    os.chmod(output_path, 0o644)
 
 def resolve_output_path():
-    """Return the output path, honouring ENTRY_OUTPUT if set."""
-    return os.environ.get("ENTRY_OUTPUT", "/output/entry.txt")
+    """Return the output path: ENTRY_OUTPUT overrides the full path;
+    otherwise MAKEFUN_OUTPUT_DIR (set by the grader to /output) or
+    /output is the directory, and the file is always entry.txt."""
+    if "ENTRY_OUTPUT" in os.environ:
+        return os.environ["ENTRY_OUTPUT"]
+    out_dir = os.environ.get("MAKEFUN_OUTPUT_DIR", "/output")
+    return os.path.join(out_dir, "entry.txt")
 
 def main():
     write_letter(LETTER, resolve_output_path())
